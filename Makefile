@@ -8,14 +8,10 @@ OBJSIZE := arm-none-eabi-objsize
 AS := arm-none-eabi-as
 AR := arm-none-eabi-ar
 
-FREERTOS_INCLUDEDIR += -IFreeRTOS/include -IFreeRTOS/portable/GCC/ARM_CM4F
+include FreeRTOS.mk
+include STM32CubeF4.mk
 
-STM32CUBEF4_INCLUDEDIR += -ISTM32CubeF4/Drivers/STM32F4xx_HAL_Driver/Inc \
-	-ISTM32CubeF4/Drivers/CMSIS/Include \
-	-ISTM32CubeF4/Drivers/CMSIS/Device/ST/STM32F4xx/Include
-
-INCLUDEDIR += $(FREERTOS_INCLUDEDIR) $(STM32CUBEF4_INCLUDEDIR) \
-	-Iinc
+INCLUDEDIR += -Iinc
 
 CFLAGS += -DSTM32F407xx -DUSE_FULL_LL_DRIVER -DHSE_VALUE=8000000 \
 	-mthumb -mcpu=cortex-m4 -mfloat-abi=softfp \
@@ -29,20 +25,20 @@ LDFLAGS += -Wl,--gc-sections -Wl,-entry=Reset_Handler \
 
 ARFLAGS +=
 
-FREERTOS_SRC += FreeRTOS/croutine.c FreeRTOS/event_groups.c FreeRTOS/list.c \
-	FreeRTOS/queue.c FreeRTOS/stream_buffer.c FreeRTOS/tasks.c \
-	FreeRTOS/timers.c FreeRTOS/portable/GCC/ARM_CM4F/port.c
+# Both symbols FREERTOS_INC and STM32CUBEF4_SRC are included in mk files
+FREERTOS_OBJ += $(FREERTOS_SRC:.c=.o)
+STM32CUBEF4_OBJ += $(STM32CUBEF4_SRC:.c=.o)
+STM32CUBEF4_OBJ += $(STM32CUBEF4_ASM:.s=.o)
+INCLUDEDIR += $(FREERTOS_INCLUDEDIR) $(STM32CUBEF4_INCLUDEDIR)
 
-STM32CUBEF4_SRC +=
+all : freertos stm32cubef4
 
-FREERTOS_OBJ := $(FREERTOS_SRC:.c=.o)
-STM32CUBEF4_OBJ := $(STM32CUBEF4_OBJ:.c=.o)
-
-freertos: $(FREERTOS_OBJ)
+freertos : $(FREERTOS_OBJ)
 	$(AR) $(ARFLAGS) freertos.a $(FREERTOS_OBJ)
+
+stm32cubef4 : $(STM32CUBEF4_OBJ)
+	$(AR) $(ARFLAGS) stm32cubef4.a $(STM32CUBEF4_OBJ)
 
 clean:
 	$(RM) $(FREERTOS_OBJ) $(STM32CUBEF4_OBJ)
-	$(RM) freertos.a
-
-# STM32CubeF4/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f407xx.s
+	$(RM) freertos.a stm32cubef4.a
